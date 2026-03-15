@@ -1,8 +1,19 @@
-const std = @import("std");
-const zig_invaders = @import("zig_invaders");
+const rl = @import("raylib");
 
-pub fn main() !void {
-    // Prints to stderr, ignoring potential errors.
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
-    try zig_invaders.bufferedPrint();
+pub fn main() void {
+    const screenWidth = 800;
+    const screenHeight = 600;
+
+    rl.initWindow(screenWidth, screenHeight, "Zig Invaders");
+    defer rl.closeWindow();
+
+    rl.setTargetFPS(60);
+
+    while (!rl.windowShouldClose()) {
+        rl.beginDrawing();
+        defer rl.endDrawing();
+
+        rl.clearBackground(rl.Color.black);
+        rl.drawText("Zig Invaders!", 300, 250, 40, rl.Color.green);
+    }
 }
