@@ -2,12 +2,28 @@ const std = @import("std");
 const rl = @import("raylib");
 const player = @import("player.zig").player;
 const gameConfig = @import("game-config.zig").gameConfig;
+const getMovementVectorByInput = @import("movement-by-input.zig").getMovementVectorByInput;
+
+const Point = struct {
+    x: i32,
+    y: i32,
+
+    pub fn normalize(self: @This()) @This() {
+        return .{
+            .x = self.x + gameConfig.screenWidth / 2,
+            .y = self.y + gameConfig.screenHeight / 2,
+        };
+    }
+};
 
 const Rectangle = struct {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+    pos: *Point,
+    width: i32,
+    height: i32,
+
+    pub fn draw(self: @This(), color: rl.Color) void {
+        rl.drawRectangle(self.pos.x, self.pos.y, self.width, self.height, color);
+    }
 
     pub fn intersects(self: Rectangle, other: Rectangle) bool {
         return self.x < other.x + other.width and
@@ -26,8 +42,8 @@ pub fn main() void {
 
     rl.setTargetFPS(gameConfig.targetFPS);
 
-    var rect1 = Rectangle{ .x = 200, .y = 300, .width = 20, .height = 20 };
-    var rect2 = Rectangle{ .x = 600, .y = 300, .width = 20, .height = 20 };
+    var shipPosition = (Point{ .x = 0, .y = 0 }).normalize();
+    var ship = Rectangle{ .pos = &shipPosition, .height = 20, .width = 20 };
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -35,14 +51,14 @@ pub fn main() void {
 
         rl.clearBackground(rl.Color.black);
 
-        rect1.x += 2;
-        rect2.x -= 2;
+        const movementDirection = getMovementVectorByInput();
 
-        rl.drawRectangle(@intFromFloat(rect1.x), @intFromFloat(rect1.y), @intFromFloat(rect1.width), @intFromFloat(rect1.height), rl.Color.green);
-        rl.drawRectangle(@intFromFloat(rect2.x), @intFromFloat(rect2.y), @intFromFloat(rect2.width), @intFromFloat(rect2.height), rl.Color.red);
-
-        if (rect1.intersects(rect2)) {
-            std.debug.print("Rectangles Intersected!\n", .{});
+        if (movementDirection.x != 0 or movementDirection.y != 0) {
+            std.debug.print("Movement : {d}, {d}\n", .{
+                movementDirection.x,
+                movementDirection.y,
+            });
         }
+        ship.draw(rl.Color.green);
     }
 }
