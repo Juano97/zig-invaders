@@ -163,4 +163,14 @@ pub fn build(b: *std.Build) void {
     //
     // Lastly, the Zig build system is relatively simple and self-contained,
     // and reading its source code will allow you to master it.
+
+    const game = b.addModule("game", .{
+        .root_source_file = b.path("src/root.zig"),
+        .imports = &.{
+            .{ .name = "raylib", .module = raylib },
+            //future libs here
+        },
+    });
+
+    exe.root_module.addImport("game", game);
 }

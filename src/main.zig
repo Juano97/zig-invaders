@@ -1,17 +1,16 @@
 const std = @import("std");
 const rl = @import("raylib");
-const player = @import("player.zig").player;
-const gameConfig = @import("game-config.zig").gameConfig;
-const getMovementVectorByInput = @import("movement-by-input.zig").getMovementVectorByInput;
+
+const game = @import("game");
 
 const Point = struct {
     x: i32,
     y: i32,
 
-    pub fn normalize(self: @This()) @This() {
+    pub fn init(x: i32, y: i32) @This() {
         return .{
-            .x = self.x + gameConfig.screenWidth / 2,
-            .y = self.y + gameConfig.screenHeight / 2,
+            .x = x + game.gameConfig.screenWidth / 2,
+            .y = y + game.gameConfig.screenHeight / 2,
         };
     }
 };
@@ -20,6 +19,7 @@ const Rectangle = struct {
     pos: *Point,
     width: i32,
     height: i32,
+    speed: f32,
 
     pub fn draw(self: @This(), color: rl.Color) void {
         rl.drawRectangle(self.pos.x, self.pos.y, self.width, self.height, color);
@@ -32,18 +32,16 @@ const Rectangle = struct {
             self.y + self.height > other.y;
     }
 };
-
 pub fn main() void {
-    const screenWidth = gameConfig.screenWidth;
-    const screenHeight = gameConfig.screenHeight;
-
+    const screenWidth = game.gameConfig.screenWidth;
+    const screenHeight = game.gameConfig.screenHeight;
     rl.initWindow(screenWidth, screenHeight, "Zig Invaders");
     defer rl.closeWindow();
 
-    rl.setTargetFPS(gameConfig.targetFPS);
+    rl.setTargetFPS(game.gameConfig.targetFPS);
 
-    var shipPosition = (Point{ .x = 0, .y = 0 }).normalize();
-    var ship = Rectangle{ .pos = &shipPosition, .height = 20, .width = 20 };
+    var shipPosition = Point.init(0, 0);
+    var ship = Rectangle{ .pos = &shipPosition, .height = 20, .width = 20, .speed = 5 };
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -51,14 +49,10 @@ pub fn main() void {
 
         rl.clearBackground(rl.Color.black);
 
-        const movementDirection = getMovementVectorByInput();
+        const movementDirection = game.getMovementVectorByInput();
+        shipPosition.x += @intFromFloat(movementDirection.x * ship.speed);
+        shipPosition.y += @intFromFloat(movementDirection.y * ship.speed);
 
-        if (movementDirection.x != 0 or movementDirection.y != 0) {
-            std.debug.print("Movement : {d}, {d}\n", .{
-                movementDirection.x,
-                movementDirection.y,
-            });
-        }
         ship.draw(rl.Color.green);
     }
 }

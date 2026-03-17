@@ -32,11 +32,11 @@ pub fn getMovementVectorByInput() MovementVector {
     }
 
     if (rl.isKeyDown(rl.KeyboardKey.s) or rl.isKeyDown(rl.KeyboardKey.down)) {
-        result.y -= 1;
+        result.y += 1;
     }
 
     if (rl.isKeyDown(rl.KeyboardKey.w) or rl.isKeyDown(rl.KeyboardKey.up)) {
-        result.y += 1;
+        result.y -= 1;
     }
 
     return result;
