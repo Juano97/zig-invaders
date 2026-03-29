@@ -47,6 +47,15 @@ pub fn SparseSet(comptime T: type) type {
             self.count += 1;
         }
 
+        pub fn set(self: *@This(), entity: Entity, component: T) !void {
+            const dense_index = self.sparse[entity.index];
+            if (dense_index != EMPTY) {
+                self.dense[dense_index] = component;
+            } else {
+                try self.add(entity, component);
+            }
+        }
+
         pub fn remove(self: *@This(), entity: Entity) !void {
             if (entity.index >= self.sparse.len) return error.OutOfBoundaries;
             if (self.sparse[entity.index] == EMPTY) return error.ComponentDoesNotExist;
@@ -69,7 +78,7 @@ pub fn SparseSet(comptime T: type) type {
             return self.sparse[entity.index] != EMPTY;
         }
 
-        pub fn get(self: @This(), entity: Entity) ?*T {
+        pub fn get(self: @This(), entity: Entity) ?*const T {
             if (!self.has(entity)) return null;
             return &self.dense[self.sparse[entity.index]];
         }
@@ -116,9 +125,9 @@ test "SparseSet add / remove" {
     const entity1 = Entity{ .index = 4, .gen = 0 };
     const entity2 = Entity{ .index = 6, .gen = 0 };
 
-    try sparseSet.add(entity0, 1);
-    try sparseSet.add(entity1, 2);
-    try sparseSet.add(entity2, 3);
+    try sparseSet.set(entity0, 1);
+    try sparseSet.set(entity1, 2);
+    try sparseSet.set(entity2, 3);
 
     try sparseSet.remove(entity1);
 
@@ -138,4 +147,8 @@ test "SparseSet add / remove" {
 
     try std.testing.expectEqualSlices(u32, &[_]u32{ 2, 6 }, sparseSet.entitySlice());
     try std.testing.expectEqualSlices(u32, &[_]u32{ 1, 3 }, sparseSet.componentSlice());
+
+    try sparseSet.set(entity0, 5);
+
+    try std.testing.expectEqual(5, sparseSet.dense[0]);
 }

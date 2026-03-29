@@ -52,9 +52,9 @@ pub const World = struct {
     pub fn registerComponent(self: *@This(), comptime T: type, capacity: usize) !void {
         if (self.sets.contains(typeId(T))) return error.ComponentAlreadyRegistered;
 
-        const set = try self.allocator.create(SparseSet(T));
-        errdefer self.allocator.destroy(set);
-        set.* = try SparseSet(T).init(self.allocator, capacity);
+        const sparse_set = try self.allocator.create(SparseSet(T));
+        errdefer self.allocator.destroy(sparse_set);
+        sparse_set.* = try SparseSet(T).init(self.allocator, capacity);
 
         const deinit_fn = struct {
             fn f(ptr: *anyopaque, allocator: std.mem.Allocator) void {
@@ -65,9 +65,55 @@ pub const World = struct {
         }.f;
 
         try self.sets.put(typeId(T), Entry{
-            .ptr = @ptrCast(set),
+            .ptr = @ptrCast(sparse_set),
             .deinit_fn = deinit_fn,
         });
+    }
+
+    pub fn spawn(self: *@This()) !Entity {
+        const free_slot = self.free_slots.pop();
+        if (free_slot == null and self.count == self.gens.len) return error.GensFull;
+        if (free_slot == null) {
+            const index = self.count;
+            self.count += 1;
+            const gen_value = self.gens[index];
+            return Entity{
+                .index = @intCast(index),
+                .gen = gen_value,
+            };
+        } else {
+            const slot = free_slot.?;
+            const gen_value = self.gens[slot];
+            return Entity{
+                .index = @intCast(slot),
+                .gen = gen_value,
+            };
+        }
+    }
+
+    pub fn destroy(self: *@This(), entity: Entity) !void {
+        if (self.gens[entity.index] != entity.gen) return error.EntityStale;
+
+        self.gens[entity.index] += 1;
+        try self.free_slots.append(self.allocator, entity.index);
+    }
+
+    pub fn set(self: @This(), entity: Entity, comptime T: type, value: T) !void {
+        if (entity.gen != self.gens[entity.index]) return error.EntityStale;
+
+        const entry = self.sets.get(typeId(T)) orelse return error.ComponentNotRegistered;
+
+        const sparse_set: *SparseSet(T) = @ptrCast(@alignCast(entry.ptr));
+        try sparse_set.set(entity, value);
+    }
+
+    pub fn get(self: @This(), entity: Entity, comptime T: type) !*const T {
+        if (entity.gen != self.gens[entity.index]) return error.EntityStale;
+
+        const entry = self.sets.get(typeId(T)) orelse return error.ComponentNotRegistered;
+
+        const sparse_set: *SparseSet(T) = @ptrCast(@alignCast(entry.ptr));
+        return sparse_set.get(entity) orelse return error.ComponentNotFound;
     }
 };
 
@@ -76,5 +122,85 @@ test "init/deinit and registerComponent" {
     const capacity = 10_000;
 
     var world = try World.init(allocator, capacity);
+
+    const Position = struct {
+        x: u8,
+        y: u8,
+    };
+
+    try world.registerComponent(Position, capacity);
+    try std.testing.expectError(error.ComponentAlreadyRegistered, world.registerComponent(Position, capacity));
+
     defer world.deinit();
+}
+
+test "spawn/destroy" {
+    const allocator = std.testing.allocator;
+    const capacity = 10_000;
+
+    var world = try World.init(allocator, capacity);
+    defer world.deinit();
+
+    const entity0 = try world.spawn();
+    const entity1 = try world.spawn();
+    const entity2 = try world.spawn();
+    const entity3 = try world.spawn();
+    const entity4 = try world.spawn();
+
+    try std.testing.expectEqual(0, entity0.index);
+    try std.testing.expectEqual(1, entity1.index);
+    try std.testing.expectEqual(2, entity2.index);
+    try std.testing.expectEqual(3, entity3.index);
+    try std.testing.expectEqual(4, entity4.index);
+
+    try std.testing.expectEqual(5, world.count);
+
+    try world.destroy(entity1);
+    try std.testing.expectEqual(1, world.free_slots.items.len);
+    try std.testing.expectEqual(1, world.gens[entity1.index]);
+
+    const entity6 = try world.spawn();
+
+    try std.testing.expectEqual(0, world.free_slots.items.len);
+    try std.testing.expectEqual(1, entity6.gen);
+
+    try world.destroy(entity6);
+
+    const entity7 = try world.spawn();
+
+    try std.testing.expectEqual(0, world.free_slots.items.len);
+    try std.testing.expectEqual(2, entity7.gen);
+    try std.testing.expectEqual(1, entity7.index);
+
+    try std.testing.expectError(error.EntityStale, world.destroy(entity6));
+}
+
+test "get/set" {
+    const allocator = std.testing.allocator;
+    const capacity = 10_000;
+
+    var world = try World.init(allocator, capacity);
+    defer world.deinit();
+
+    const entity0 = try world.spawn();
+    const Position = struct {
+        x: u8,
+        y: u8,
+    };
+
+    try world.registerComponent(Position, capacity);
+    try world.set(entity0, Position, .{
+        .x = 0,
+        .y = 1,
+    });
+
+    const position0 = try world.get(entity0, Position);
+    try std.testing.expectEqual(1, position0.y);
+
+    try world.set(entity0, Position, .{
+        .x = 1,
+        .y = 2,
+    });
+    const position1 = try world.get(entity0, Position);
+    try std.testing.expectEqual(2, position1.y);
 }
