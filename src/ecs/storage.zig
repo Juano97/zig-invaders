@@ -83,6 +83,11 @@ pub fn SparseSet(comptime T: type) type {
             return &self.dense[self.sparse[entity.index]];
         }
 
+        pub fn getMutable(self: *@This(), entity: Entity) ?*T {
+            if (!self.has(entity)) return null;
+            return &self.dense[self.sparse[entity.index]];
+        }
+
         pub fn componentSlice(self: *@This()) []T {
             return self.dense[0..self.count];
         }

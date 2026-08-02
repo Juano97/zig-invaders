@@ -3,11 +3,8 @@ const Entity = @import("entity.zig").Entity;
 const SparseSet = @import("storage.zig").SparseSet;
 
 fn typeId(comptime T: type) usize {
-    _ = T;
-    const S = struct {
-        var id: u8 = 0;
-    };
-    return @intFromPtr(&S.id);
+    const ptr: *const anyopaque = @ptrCast(@typeName(T));
+    return @intFromPtr(ptr);
 }
 
 pub const World = struct {
@@ -20,6 +17,7 @@ pub const World = struct {
     const Entry = struct {
         ptr: *anyopaque,
         deinit_fn: *const fn (ptr: *anyopaque, allocator: std.mem.Allocator) void,
+        remove_fn: *const fn (ptr: *anyopaque, entity: Entity) void,
     };
 
     pub fn init(allocator: std.mem.Allocator, capacity: usize) !@This() {
@@ -64,9 +62,20 @@ pub const World = struct {
             }
         }.f;
 
+        const remove_fn = struct {
+            fn f(ptr: *anyopaque, entity: Entity) void {
+                const s: *SparseSet(T) = @ptrCast(@alignCast(ptr));
+                s.remove(entity) catch |err| switch (err) {
+                    error.ComponentDoesNotExist => {},
+                    else => unreachable,
+                };
+            }
+        }.f;
+
         try self.sets.put(typeId(T), Entry{
             .ptr = @ptrCast(sparse_set),
             .deinit_fn = deinit_fn,
+            .remove_fn = remove_fn,
         });
     }
 
@@ -93,7 +102,10 @@ pub const World = struct {
 
     pub fn destroy(self: *@This(), entity: Entity) !void {
         if (self.gens[entity.index] != entity.gen) return error.EntityStale;
-
+        var it = self.sets.iterator();
+        while (it.next()) |entry| {
+            entry.value_ptr.remove_fn(entry.value_ptr.ptr, entity);
+        }
         self.gens[entity.index] += 1;
         try self.free_slots.append(self.allocator, entity.index);
     }
@@ -114,6 +126,30 @@ pub const World = struct {
 
         const sparse_set: *SparseSet(T) = @ptrCast(@alignCast(entry.ptr));
         return sparse_set.get(entity) orelse return error.ComponentNotFound;
+    }
+
+    pub fn getMutable(self: *@This(), entity: Entity, comptime T: type) !*T {
+        if (entity.gen != self.gens[entity.index]) return error.EntityStale;
+
+        const entry = self.sets.get(typeId(T)) orelse return error.ComponentNotRegistered;
+
+        const sparse_set: *SparseSet(T) = @ptrCast(@alignCast(entry.ptr));
+        return sparse_set.getMutable(entity) orelse return error.ComponentNotFound;
+    }
+
+    pub fn remove(self: *@This(), entity: Entity, comptime T: type) !void {
+        if (entity.gen != self.gens[entity.index]) return error.EntityStale;
+
+        const entry = self.sets.get(typeId(T)) orelse return error.ComponentNotRegistered;
+
+        const sparse_set: *SparseSet(T) = @ptrCast(@alignCast(entry.ptr));
+        try sparse_set.remove(entity);
+    }
+
+    pub fn queryMutable(self: *@This(), comptime types: anytype) ![]Entity {
+        _ = self;
+        _ = types;
+        return &.{};
     }
 };
 
@@ -175,7 +211,7 @@ test "spawn/destroy" {
     try std.testing.expectError(error.EntityStale, world.destroy(entity6));
 }
 
-test "get/set" {
+test "get/set/remove/getMutable" {
     const allocator = std.testing.allocator;
     const capacity = 10_000;
 
@@ -183,9 +219,13 @@ test "get/set" {
     defer world.deinit();
 
     const entity0 = try world.spawn();
+    const entity1 = try world.spawn();
     const Position = struct {
         x: u8,
         y: u8,
+    };
+    const Velocity = struct {
+        d: u8,
     };
 
     try world.registerComponent(Position, capacity);
@@ -203,4 +243,15 @@ test "get/set" {
     });
     const position1 = try world.get(entity0, Position);
     try std.testing.expectEqual(2, position1.y);
+
+    var position2 = try world.getMutable(entity0, Position);
+    position2.x = 5;
+
+    try std.testing.expectEqual(5, position2.x);
+    try std.testing.expectError(error.ComponentNotFound, world.getMutable(entity1, Position));
+
+    try world.remove(entity0, Position);
+
+    try std.testing.expectError(error.ComponentNotFound, world.getMutable(entity0, Position));
+    try std.testing.expectError(error.ComponentNotRegistered, world.remove(entity1, Velocity));
 }
