@@ -1,0 +1,6 @@
+# Zig build cache and output
+.zig-cache/
+zig-out/
+
+# Fetched dependency sources (Zig's package cache lives here in this project)
+zig-pkg/

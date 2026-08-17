@@ -92,7 +92,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
 
-    exe.linkLibrary(raylib_artifact);
+    exe.root_module.linkLibrary(raylib_artifact);
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden
@@ -163,4 +163,14 @@ pub fn build(b: *std.Build) void {
     //
     // Lastly, the Zig build system is relatively simple and self-contained,
     // and reading its source code will allow you to master it.
+
+    const game = b.addModule("game", .{
+        .root_source_file = b.path("src/root.zig"),
+        .imports = &.{
+            .{ .name = "raylib", .module = raylib },
+            //future libs here
+        },
+    });
+
+    exe.root_module.addImport("game", game);
 }

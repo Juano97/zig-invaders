@@ -1,10 +1,29 @@
+const std = @import("std");
 const rl = @import("raylib");
 
+const game = @import("game");
+
+const Point = struct {
+    x: i32,
+    y: i32,
+
+    pub fn init(x: i32, y: i32) @This() {
+        return .{
+            .x = x + game.gameConfig.screenWidth / 2,
+            .y = y + game.gameConfig.screenHeight / 2,
+        };
+    }
+};
+
 const Rectangle = struct {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+    pos: *Point,
+    width: i32,
+    height: i32,
+    speed: f32,
+
+    pub fn draw(self: @This(), color: rl.Color) void {
+        rl.drawRectangle(self.pos.x, self.pos.y, self.width, self.height, color);
+    }
 
     pub fn intersects(self: Rectangle, other: Rectangle) bool {
         return self.x < other.x + other.width and
@@ -13,42 +32,27 @@ const Rectangle = struct {
             self.y + self.height > other.y;
     }
 };
-
-const GameConfig = struct {
-    screenWidth: i32,
-    screenHeight: i32,
-    playerWidth: f32,
-    playerHeight: f32,
-    playerStartY: f32,
-    bulletWidth: f32,
-    bulletHeight: f32,
-    shieldStartX: f32,
-    shieldY: f32,
-    shieldWidth: f32,
-    shieldHeight: f32,
-    shieldSpacing: f32,
-    invaderStartX: f32,
-    invaderStartY: f32,
-    invaderWidth: f32,
-    invaderHeight: f32,
-    invaderSpacingX: f32,
-    invaderSpacingY: f32,
-};
-
 pub fn main() void {
-    const screenWidth = 800;
-    const screenHeight = 600;
-
+    const screenWidth = game.gameConfig.screenWidth;
+    const screenHeight = game.gameConfig.screenHeight;
     rl.initWindow(screenWidth, screenHeight, "Zig Invaders");
     defer rl.closeWindow();
 
-    rl.setTargetFPS(60);
+    rl.setTargetFPS(game.gameConfig.targetFPS);
+
+    var shipPosition = Point.init(0, 0);
+    var ship = Rectangle{ .pos = &shipPosition, .height = 20, .width = 20, .speed = 5 };
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
-        rl.drawText("Zig Invaders!", 300, 250, 40, rl.Color.green);
+
+        const movementDirection = game.getMovementVectorByInput();
+        shipPosition.x += @intFromFloat(movementDirection.x * ship.speed);
+        shipPosition.y += @intFromFloat(movementDirection.y * ship.speed);
+
+        ship.draw(rl.Color.green);
     }
 }
