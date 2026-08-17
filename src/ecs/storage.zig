@@ -39,6 +39,7 @@ pub fn SparseSet(comptime T: type) type {
 
         pub fn add(self: *@This(), entity: Entity, component: T) !void {
             if (self.count >= self.sparse.len) return error.OutOfCapacity;
+            if (entity.index >= self.sparse.len) return error.OutOfBoundaries;
             if (self.sparse[entity.index] != EMPTY) return error.ComponentAlreadyExists;
 
             self.sparse[entity.index] = self.count;
@@ -48,6 +49,7 @@ pub fn SparseSet(comptime T: type) type {
         }
 
         pub fn set(self: *@This(), entity: Entity, component: T) !void {
+            if (entity.index >= self.sparse.len) return error.OutOfBoundaries;
             const dense_index = self.sparse[entity.index];
             if (dense_index != EMPTY) {
                 self.dense[dense_index] = component;
