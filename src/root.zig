@@ -7,4 +7,8 @@ pub const Entity = @import("ecs/entity.zig").Entity;
 pub const SparseSet = @import("ecs/storage.zig").SparseSet;
 pub const World = @import("ecs/world.zig").World;
 
+pub const Position = @import("ecs/components.zig").Position;
+pub const Velocity = @import("ecs/components.zig").Velocity;
+pub const Sprite = @import("ecs/components.zig").Sprite;
+
 pub const getMovementVectorByInput = @import("input/movement.zig").getMovementVectorByInput;

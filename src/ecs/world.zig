@@ -180,7 +180,7 @@ pub const World = struct {
     }
 
     pub fn queryMutable(self: *@This(), comptime types: anytype) !MutableIterator(types) {
-        if (types.len == 0) @compileError("types array must not be empty");
+        if (types.len == 0) @compileError("Types array must not be empty");
         var sparse_sets: [types.len]*anyopaque = undefined;
 
         for (types, 0..) |T, i| {
