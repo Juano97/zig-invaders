@@ -1,5 +1,6 @@
 pub const GameConfig = @import("config/game_config.zig").GameConfig;
 pub const gameConfig = @import("config/game_config.zig").gameConfig;
+pub const playerConfig = @import("config/game_config.zig").playerConfig;
 
 pub const Vec3 = @import("math/vec3.zig").Vec3;
 

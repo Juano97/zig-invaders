@@ -2,9 +2,6 @@ pub const GameConfig = struct {
     screenWidth: i32,
     screenHeight: i32,
     targetFPS: i32,
-    playerWidth: f32,
-    playerHeight: f32,
-    playerStartY: f32,
     bulletWidth: f32,
     bulletHeight: f32,
     shieldStartX: f32,
@@ -20,13 +17,19 @@ pub const GameConfig = struct {
     invaderSpacingY: f32,
 };
 
+pub const PlayerConfig = struct {
+    playerWidth: f32,
+    playerHeight: f32,
+    playerStartX: f32,
+    playerStartY: f32,
+    playerStartZ: f32,
+    playerSpeed: f32,
+};
+
 pub const gameConfig = GameConfig{
     .screenWidth = 800,
     .screenHeight = 600,
     .targetFPS = 60,
-    .playerWidth = 40,
-    .playerHeight = 20,
-    .playerStartY = 550,
     .bulletWidth = 4,
     .bulletHeight = 10,
     .shieldStartX = 100,
@@ -40,4 +43,13 @@ pub const gameConfig = GameConfig{
     .invaderHeight = 20,
     .invaderSpacingX = 10,
     .invaderSpacingY = 10,
+};
+
+pub const playerConfig: PlayerConfig = PlayerConfig{
+    .playerWidth = 20,
+    .playerHeight = 20,
+    .playerStartX = @as(f32, @floatFromInt(gameConfig.screenWidth)) / 2,
+    .playerStartY = @as(f32, @floatFromInt(gameConfig.screenHeight)) - (@as(f32, @floatFromInt(gameConfig.screenHeight)) / 10),
+    .playerStartZ = 0,
+    .playerSpeed = 5,
 };

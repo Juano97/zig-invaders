@@ -3,10 +3,6 @@ const rl = @import("raylib");
 
 const game = @import("game");
 
-fn drawRectangleWrapper(screenW: i32, screenH: i32, posX: i32, posY: i32, width: i32, height: i32, color: rl.Color) void {
-    rl.drawRectangle(posX + @divTrunc(screenW, 2), posY + @divTrunc(screenH, 2), width, height, color);
-}
-
 pub fn main() !void {
     const screenWidth = game.gameConfig.screenWidth;
     const screenHeight = game.gameConfig.screenHeight;
@@ -25,10 +21,11 @@ pub fn main() !void {
     try world.registerComponent(game.Sprite, capacity);
 
     const player = try world.spawn();
-    const initialVector: game.Vec3 = .{ .x = 0, .y = 0, .z = 0 };
-    try world.set(player, game.Position, .{ .v = initialVector });
-    try world.set(player, game.Velocity, .{ .v = initialVector });
-    try world.set(player, game.Sprite, .{ .height = 20, .width = 20 });
+    const initialVectorPosition: game.Vec3 = .{ .x = game.playerConfig.playerStartX, .y = game.playerConfig.playerStartY, .z = game.playerConfig.playerStartZ };
+    const initialVectorVelocity: game.Vec3 = .{ .x = 0, .y = 0, .z = 0 };
+    try world.set(player, game.Position, .{ .v = initialVectorPosition });
+    try world.set(player, game.Velocity, .{ .v = initialVectorVelocity });
+    try world.set(player, game.Sprite, .{ .height = @intFromFloat(game.playerConfig.playerHeight), .width = @intFromFloat(game.playerConfig.playerWidth) });
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -36,17 +33,25 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.black);
 
-        const movementDirection = game.getMovementVectorByInput();
+        var movementDirection = game.getMovementVectorByInput();
 
         const mutablePlayerPosition = try world.getMutable(player, game.Position);
+        const mutablePlayerVelocity = try world.getMutable(player, game.Velocity);
         const mutablePlayerSprite = try world.getMutable(player, game.Sprite);
 
-        const speed = 5;
-        const velocity: game.Velocity = .{ .v = .{ .x = movementDirection.x * speed, .y = movementDirection.y * speed, .z = 0 } };
+        const vectorLength = @sqrt(movementDirection.x * movementDirection.x + movementDirection.y * movementDirection.y);
+        if (vectorLength > 0) {
+            movementDirection.x /= vectorLength;
+            movementDirection.y /= vectorLength;
+        }
 
-        mutablePlayerPosition.v.x += velocity.v.x;
-        mutablePlayerPosition.v.y += velocity.v.y;
+        const speed = game.playerConfig.playerSpeed;
+        mutablePlayerVelocity.v.x = movementDirection.x * speed;
+        mutablePlayerVelocity.v.y = movementDirection.y * speed;
 
-        drawRectangleWrapper(screenWidth, screenHeight, @intFromFloat(mutablePlayerPosition.v.x), @intFromFloat(mutablePlayerPosition.v.y), mutablePlayerSprite.width, mutablePlayerSprite.height, rl.Color.green);
+        mutablePlayerPosition.v.x = std.math.clamp(mutablePlayerPosition.v.x + mutablePlayerVelocity.v.x, 0, @as(f32, @floatFromInt(game.gameConfig.screenWidth - mutablePlayerSprite.width)));
+        mutablePlayerPosition.v.y = std.math.clamp(mutablePlayerPosition.v.y + mutablePlayerVelocity.v.y, 0, @as(f32, @floatFromInt(game.gameConfig.screenHeight - mutablePlayerSprite.height)));
+
+        rl.drawRectangle(@intFromFloat(mutablePlayerPosition.v.x), @intFromFloat(mutablePlayerPosition.v.y), mutablePlayerSprite.width, mutablePlayerSprite.height, rl.Color.green);
     }
 }
