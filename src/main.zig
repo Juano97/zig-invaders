@@ -21,8 +21,8 @@ pub fn main() !void {
     try world.registerComponent(game.Sprite, capacity);
 
     const player = try world.spawn();
-    const initialVectorPosition: game.Vec3 = .{ .x = game.playerConfig.playerStartX, .y = game.playerConfig.playerStartY, .z = game.playerConfig.playerStartZ };
-    const initialVectorVelocity: game.Vec3 = .{ .x = 0, .y = 0, .z = 0 };
+    const initialVectorPosition: game.Vec2 = .{ .x = game.playerConfig.playerStartX, .y = game.playerConfig.playerStartY };
+    const initialVectorVelocity: game.Vec2 = .{ .x = 0, .y = 0 };
     try world.set(player, game.Position, .{ .v = initialVectorPosition });
     try world.set(player, game.Velocity, .{ .v = initialVectorVelocity });
     try world.set(player, game.Sprite, .{ .height = @intFromFloat(game.playerConfig.playerHeight), .width = @intFromFloat(game.playerConfig.playerWidth) });
@@ -33,21 +33,17 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.black);
 
-        var movementDirection = game.getMovementVectorByInput();
+        const movementVector = game.getMovementVectorByInput();
 
         const mutablePlayerPosition = try world.getMutable(player, game.Position);
         const mutablePlayerVelocity = try world.getMutable(player, game.Velocity);
         const mutablePlayerSprite = try world.getMutable(player, game.Sprite);
 
-        const vectorLength = @sqrt(movementDirection.x * movementDirection.x + movementDirection.y * movementDirection.y);
-        if (vectorLength > 0) {
-            movementDirection.x /= vectorLength;
-            movementDirection.y /= vectorLength;
-        }
+        const normMovementVector = movementVector.normalize();
 
         const speed = game.playerConfig.playerSpeed;
-        mutablePlayerVelocity.v.x = movementDirection.x * speed;
-        mutablePlayerVelocity.v.y = movementDirection.y * speed;
+        mutablePlayerVelocity.v.x = normMovementVector.x * speed;
+        mutablePlayerVelocity.v.y = normMovementVector.y * speed;
 
         mutablePlayerPosition.v.x = std.math.clamp(mutablePlayerPosition.v.x + mutablePlayerVelocity.v.x, 0, @as(f32, @floatFromInt(game.gameConfig.screenWidth - mutablePlayerSprite.width)));
         mutablePlayerPosition.v.y = std.math.clamp(mutablePlayerPosition.v.y + mutablePlayerVelocity.v.y, 0, @as(f32, @floatFromInt(game.gameConfig.screenHeight - mutablePlayerSprite.height)));

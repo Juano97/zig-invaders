@@ -1,8 +1,8 @@
 pub const GameConfig = @import("config/game_config.zig").GameConfig;
 pub const gameConfig = @import("config/game_config.zig").gameConfig;
-pub const playerConfig = @import("config/game_config.zig").playerConfig;
+pub const playerConfig = @import("config/player_config.zig").playerConfig;
 
-pub const Vec3 = @import("math/vec3.zig").Vec3;
+pub const Vec2 = @import("math/vec2.zig").Vec2;
 
 pub const Entity = @import("ecs/entity.zig").Entity;
 pub const SparseSet = @import("ecs/storage.zig").SparseSet;

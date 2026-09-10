@@ -1,14 +1,10 @@
 const rl = @import("raylib");
+const Vec2 = @import("../math/vec2.zig").Vec2;
 
 const DEADZONE = 0.1;
 
-pub const MovementVector = struct {
-    x: f32,
-    y: f32,
-};
-
-pub fn getMovementVectorByInput() MovementVector {
-    var result = MovementVector{ .x = 0, .y = 0 };
+pub fn getMovementVectorByInput() Vec2 {
+    var result: Vec2 = .{ .x = 0, .y = 0 };
 
     if (rl.isGamepadAvailable(0)) {
         const x = rl.getGamepadAxisMovement(0, rl.GamepadAxis.left_x);
