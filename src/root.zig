@@ -12,4 +12,4 @@ pub const Position = @import("ecs/components.zig").Position;
 pub const Velocity = @import("ecs/components.zig").Velocity;
 pub const Sprite = @import("ecs/components.zig").Sprite;
 
-pub const getMovementVectorByInput = @import("input/movement.zig").getMovementVectorByInput;
+pub const InputState = @import("input/movement.zig").InputState;
