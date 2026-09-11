@@ -11,6 +11,8 @@ pub fn main() !void {
 
     rl.setTargetFPS(game.gameConfig.targetFPS);
 
+    var inputState: game.InputState = .{};
+
     const allocator = std.heap.page_allocator;
     const capacity = 32;
     var world = try game.World.init(allocator, capacity);
@@ -33,7 +35,7 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.black);
 
-        const movementVector = game.getMovementVectorByInput();
+        const movementVector = inputState.poll();
 
         const mutablePlayerPosition = try world.getMutable(player, game.Position);
         const mutablePlayerVelocity = try world.getMutable(player, game.Velocity);
