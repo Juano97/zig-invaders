@@ -1,6 +1,6 @@
 # MENTOR.md
 
-Zig Invaders — a Space Invaders clone in Zig, built on raylib-zig for windowing/input/drawing. Solo learning project; author is building both the game and a from-scratch ECS as an exercise, so expect deliberate "do it myself" choices (custom sparse-set ECS instead of a library) over shortcuts. `build.zig.zon` pins `minimum_zig_version = "0.16.0"` — if your toolchain is older, that's why it won't build.
+Zig Invaders — a Space Invaders clone in Zig, built on raylib-zig for windowing/input/drawing. Solo learning project; author is building both the game and a from-scratch ECS as an exercise, so expect deliberate "do it myself" choices (custom sparse-set ECS instead of a library) over shortcuts. `build.zig.zon` pins `minimum_zig_version = "0.17.0"` — if your toolchain is older, that's why it won't build.
 
 **Entry points**
 - `src/main.zig` — `main()`. Now wired to the ECS: sizes the window from `gameConfig` (`screenWidth`/`screenHeight`/`targetFPS`), builds a `World` (capacity 32), registers `Position`/`Velocity`/`Sprite`, spawns one player `Entity`, then each frame reads `getMovementVectorByInput()`, mutates the player's `Position` in place, and draws it as a green rectangle. No system layer yet — the loop does everything inline and never calls `queryMutable`. It `@import("game")`, not `@import("zig_invaders")`.
